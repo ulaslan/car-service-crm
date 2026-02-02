@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Image from "next/image"; // LOGO İÇİN GEREKLİ
-import Link from "next/link";   // SAYFA GEÇİŞİ İÇİN GEREKLİ (YENİ EKLENDİ)
+import Link from "next/link";   // SAYFA GEÇİŞİ İÇİN GEREKLİ
 
 export default function Home() {
   // --- SEKME YÖNETİMİ ---
@@ -181,8 +181,8 @@ export default function Home() {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-start bg-slate-900 text-white p-4 pt-8">
       
-      {/* LOGO BÖLÜMÜ - SOL ÜST KÖŞE */}
-      <div className="absolute top-6 left-6 z-10 hidden sm:block">
+      {/* LOGO BÖLÜMÜ - DÜZELTİLDİ: hidden kaldırıldı, boyut ayarlandı */}
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10">
         <Image 
           src="/logo.png" 
           alt="Oto Birlik Logo"
@@ -191,11 +191,11 @@ export default function Home() {
           quality={100} 
           unoptimized 
           priority
-          className="h-auto w-auto max-w-[150px]"
+          className="h-auto w-auto max-w-[100px] sm:max-w-[150px]"
         />
       </div>
 
-      {/* YIKAMA PANELİNE GİT - SAĞ ÜST KÖŞE (YENİ EKLENDİ) */}
+      {/* YIKAMA PANELİNE GİT */}
       <div className="absolute top-6 right-6 z-10">
         <Link 
             href="/yikama" 
@@ -207,7 +207,8 @@ export default function Home() {
         </Link>
       </div>
 
-      <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-blue-400 tracking-tight text-center mt-12 sm:mt-0">BİRLİK OTO KAYIT</h1>
+      {/* BAŞLIK - margin-top artırıldı ki logoyla çakışmasın */}
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-blue-400 tracking-tight text-center mt-16 sm:mt-0">BİRLİK OTO KAYIT</h1>
       
       <div className="flex bg-slate-800 p-1 rounded-2xl mb-8 border border-slate-700">
         <button onClick={() => setActiveTab("TRANSACTIONS")} className={`px-6 sm:px-8 py-3 rounded-xl font-bold transition-all text-sm sm:text-base ${activeTab === "TRANSACTIONS" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}>⚡ İŞLEMLER</button>
