@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Image from "next/image"; // LOGO İÇİN GEREKLİ
+import Link from "next/link";   // SAYFA GEÇİŞİ İÇİN GEREKLİ (YENİ EKLENDİ)
 
 export default function Home() {
   // --- SEKME YÖNETİMİ ---
@@ -162,7 +163,6 @@ export default function Home() {
     if (!error) { 
       setCustomer(data); 
       setViewState("FOUND"); 
-      // DÜZELTME 1: Kayıt başarılı olunca formu temizle
       setNewCustomer({ fullName: "", phone: "", model: "" });
     }
     setLoading(false);
@@ -182,7 +182,7 @@ export default function Home() {
     <main className="relative flex min-h-screen flex-col items-center justify-start bg-slate-900 text-white p-4 pt-8">
       
       {/* LOGO BÖLÜMÜ - SOL ÜST KÖŞE */}
-      <div className="absolute top-6 left-6 z-10">
+      <div className="absolute top-6 left-6 z-10 hidden sm:block">
         <Image 
           src="/logo.png" 
           alt="Oto Birlik Logo"
@@ -191,15 +191,27 @@ export default function Home() {
           quality={100} 
           unoptimized 
           priority
-          className="h-auto w-auto max-w-[150px] sm:max-w-[180px]"
+          className="h-auto w-auto max-w-[150px]"
         />
       </div>
 
-      <h1 className="text-3xl font-bold mb-6 text-blue-400 tracking-tight">BİRLİK OTO KAYIT SİSTEMİ</h1>
+      {/* YIKAMA PANELİNE GİT - SAĞ ÜST KÖŞE (YENİ EKLENDİ) */}
+      <div className="absolute top-6 right-6 z-10">
+        <Link 
+            href="/yikama" 
+            target="_blank" 
+            className="flex items-center gap-2 bg-cyan-600/20 hover:bg-cyan-600 border border-cyan-500/50 text-cyan-400 hover:text-white px-4 py-2 rounded-xl transition-all font-bold shadow-lg backdrop-blur-sm"
+        >
+            <span className="text-xl">🚿</span>
+            <span className="hidden sm:inline">YIKAMA PANELİ</span>
+        </Link>
+      </div>
+
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-blue-400 tracking-tight text-center mt-12 sm:mt-0">BİRLİK OTO KAYIT</h1>
       
       <div className="flex bg-slate-800 p-1 rounded-2xl mb-8 border border-slate-700">
-        <button onClick={() => setActiveTab("TRANSACTIONS")} className={`px-8 py-3 rounded-xl font-bold transition-all ${activeTab === "TRANSACTIONS" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}>⚡ İŞLEMLER</button>
-        <button onClick={() => setActiveTab("DIRECTORY")} className={`px-8 py-3 rounded-xl font-bold transition-all ${activeTab === "DIRECTORY" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}>📖 Kayıtlı Araçlar</button>
+        <button onClick={() => setActiveTab("TRANSACTIONS")} className={`px-6 sm:px-8 py-3 rounded-xl font-bold transition-all text-sm sm:text-base ${activeTab === "TRANSACTIONS" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}>⚡ İŞLEMLER</button>
+        <button onClick={() => setActiveTab("DIRECTORY")} className={`px-6 sm:px-8 py-3 rounded-xl font-bold transition-all text-sm sm:text-base ${activeTab === "DIRECTORY" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}>📖 REHBER</button>
       </div>
 
       {activeTab === "TRANSACTIONS" && (
@@ -241,17 +253,7 @@ export default function Home() {
                 <div className="relative"><span className="absolute left-4 top-4 text-slate-400 font-bold select-none">+90</span><input type="tel" value={newCustomer.phone} placeholder="5XX XXX XX XX" className="bg-slate-700 p-4 pl-14 rounded-xl focus:ring-2 ring-blue-500 outline-none w-full font-mono text-lg" onChange={handlePhoneChange} /></div>
                 <input type="text" value={newCustomer.model} placeholder="Araç Modeli" className="bg-slate-700 p-4 rounded-xl focus:ring-2 ring-blue-500 outline-none" onChange={(e) => setNewCustomer({ ...newCustomer, model: e.target.value })} />
                 <button onClick={handleSaveCustomer} disabled={loading} className="bg-green-600 hover:bg-green-500 py-4 rounded-xl font-bold text-lg mt-2">{loading ? "Kaydediliyor..." : "KAYDET VE DEVAM ET"}</button>
-                
-                {/* DÜZELTME 2: İptal butonuna basınca da formu temizle */}
-                <button 
-                  onClick={() => {
-                    setViewState("SEARCH");
-                    setNewCustomer({ fullName: "", phone: "", model: "" });
-                  }} 
-                  className="text-slate-500 text-sm"
-                >
-                  İptal
-                </button>
+                <button onClick={() => {setViewState("SEARCH"); setNewCustomer({ fullName: "", phone: "", model: "" });}} className="text-slate-500 text-sm">İptal</button>
               </div>
             )}
           </div>
@@ -353,7 +355,7 @@ export default function Home() {
                       <div className="text-xs text-slate-500 mt-1">{formatDate(job.created_at)}</div>
                     </div>
                     <div className="text-right">
-                       <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded border ${job.status === 'completed' ? 'border-green-500/30 text-green-500 bg-green-500/10' : job.status === 'in_progress' ? 'border-blue-500/30 text-blue-500 bg-blue-500/10' : 'border-yellow-500/30 text-yellow-500 bg-yellow-500/10'}`}>{job.status === 'completed' ? 'Tamamlandı' : job.status === 'in_progress' ? 'İşlemde' : 'Bekliyor'}</span>
+                        <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded border ${job.status === 'completed' ? 'border-green-500/30 text-green-500 bg-green-500/10' : job.status === 'in_progress' ? 'border-blue-500/30 text-blue-500 bg-blue-500/10' : 'border-yellow-500/30 text-yellow-500 bg-yellow-500/10'}`}>{job.status === 'completed' ? 'Tamamlandı' : job.status === 'in_progress' ? 'İşlemde' : 'Bekliyor'}</span>
                     </div>
                   </div>
                 ))
