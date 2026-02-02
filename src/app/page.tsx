@@ -168,20 +168,41 @@ export default function Home() {
     setLoading(false);
   };
 
-  const createJob = async (type: "wash" | "repair") => {
+  // --- GÜNCELLENEN FONKSİYON: createJob ---
+  // isQuickRecord: true ise direkt 'completed' yapar (Kuyruğa girmez, mesaj gitmez)
+  // isQuickRecord: false ise 'waiting' yapar (Kuyruğa girer, mesaj gider)
+  const createJob = async (type: "wash" | "repair", isQuickRecord: boolean = false) => {
     if (!customer) return;
+    
     setLoading(true);
+    
+    // Eğer Hızlı Kayıt ise durum 'completed', değilse 'waiting'
+    const status = isQuickRecord ? "completed" : "waiting";
+
     const { error } = await supabase.from("jobs").insert([{
-      customer_id: customer.id, service_type: type, status: "waiting",
+      customer_id: customer.id, 
+      service_type: type, 
+      status: status,
     }]);
-    if (!error) { setPlate(""); setViewState("SEARCH"); fetchActiveJobs(); }
+
+    if (!error) { 
+      // İşlem başarılıysa ana ekrana dön ve plakayı temizle
+      setPlate(""); 
+      setViewState("SEARCH"); 
+      fetchActiveJobs(); 
+
+      // Kullanıcıya ufak bir geri bildirim (Opsiyonel ama hoş olur)
+      if (isQuickRecord) {
+        alert("Kayıt başarıyla eklendi (Mesaj gönderilmedi).");
+      }
+    }
     setLoading(false);
   };
 
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-start bg-slate-900 text-white p-4 pt-8">
       
-      {/* LOGO BÖLÜMÜ - DÜZELTİLDİ: hidden kaldırıldı, boyut ayarlandı */}
+      {/* LOGO BÖLÜMÜ */}
       <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10">
         <Image 
           src="/logo.png" 
@@ -207,7 +228,6 @@ export default function Home() {
         </Link>
       </div>
 
-      {/* BAŞLIK - margin-top artırıldı ki logoyla çakışmasın */}
       <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-blue-400 tracking-tight text-center mt-16 sm:mt-0">BİRLİK OTO KAYIT</h1>
       
       <div className="flex bg-slate-800 p-1 rounded-2xl mb-8 border border-slate-700">
@@ -239,11 +259,38 @@ export default function Home() {
                   <p className="text-xl text-green-400 font-bold mt-1">{customer.full_name}</p>
                   <p className="text-slate-400 text-sm uppercase">{customer.car_model}</p>
                 </div>
+                
                 <div className="grid grid-cols-2 gap-4">
-                  <button onClick={() => createJob("wash")} className="bg-cyan-600 hover:bg-cyan-500 p-6 rounded-2xl font-bold flex flex-col items-center gap-2"><span className="text-3xl">🚿</span> YIKAMA</button>
-                  <button onClick={() => createJob("repair")} className="bg-orange-600 hover:bg-orange-500 p-6 rounded-2xl font-bold flex flex-col items-center gap-2"><span className="text-3xl">🔧</span> SERVİS</button>
+                  {/* --- GÜNCELLENEN KISIM: YIKAMA BUTONLARI --- */}
+                  <div className="flex flex-col gap-2">
+                    {/* 1. Kuyruğa Al (Mesaj Gider) */}
+                    <button 
+                      onClick={() => createJob("wash", false)} 
+                      className="bg-cyan-600 hover:bg-cyan-500 p-4 rounded-xl font-bold flex flex-col items-center justify-center gap-1 h-full"
+                    >
+                      <span className="text-2xl">🚿</span> 
+                      <span>YIKAMA</span>
+                      <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded text-cyan-100 font-normal">Kuyruğa Al</span>
+                    </button>
+                  </div>
+
+                  {/* 2. Servis Butonu (Değişmedi) */}
+                  <button onClick={() => createJob("repair", false)} className="bg-orange-600 hover:bg-orange-500 p-4 rounded-xl font-bold flex flex-col items-center justify-center gap-1">
+                    <span className="text-2xl">🔧</span> 
+                    <span>SERVİS</span>
+                    <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded text-orange-100 font-normal">Kuyruğa Al</span>
+                  </button>
                 </div>
-                <button onClick={() => {setViewState("SEARCH"); setPlate("");}} className="text-slate-500 hover:text-white text-sm">← Vazgeç</button>
+
+                {/* --- YENİ EKLENEN KISIM: HIZLI KAYIT BUTONU --- */}
+                <button 
+                  onClick={() => createJob("wash", true)} 
+                  className="mt-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-300 hover:text-white p-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
+                >
+                  <span>⚡🚿 HIZLI YIKAMA (Mesaj Gönderme)</span>
+                </button>
+
+                <button onClick={() => {setViewState("SEARCH"); setPlate("");}} className="text-slate-500 hover:text-white text-sm mt-2">← Vazgeç</button>
               </div>
             )}
             {viewState === "NEW_FORM" && (
