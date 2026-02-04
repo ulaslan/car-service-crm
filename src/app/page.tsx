@@ -21,6 +21,9 @@ export default function Home() {
   const [allCustomers, setAllCustomers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // --- DÜZENLEME (EDIT) STATE'LERİ ---
+  const [editingCustomer, setEditingCustomer] = useState<any>(null); // Düzenlenen müşteri verisi
+
   // --- GEÇMİŞ DÖKÜMÜ (MODAL) STATE'LERİ ---
   const [historyCustomer, setHistoryCustomer] = useState<any>(null);
   const [historyJobs, setHistoryJobs] = useState<any[]>([]);
@@ -40,8 +43,10 @@ export default function Home() {
   const fetchAllCustomers = async () => {
     let query = supabase.from("customers").select("*").order("full_name", { ascending: true });
     
+    // --- GÜNCELLEME 1: ARAMA KRİTERLERİ GENİŞLETİLDİ ---
     if (searchQuery) {
-      query = query.or(`full_name.ilike.%${searchQuery}%,plate_number.ilike.%${searchQuery}%`);
+      // Plaka, İsim, Telefon veya Model içinde ara
+      query = query.or(`full_name.ilike.%${searchQuery}%,plate_number.ilike.%${searchQuery}%,phone_number.ilike.%${searchQuery}%,car_model.ilike.%${searchQuery}%`);
     }
 
     const { data } = await query.limit(50); 
@@ -99,6 +104,38 @@ export default function Home() {
     await supabase.from("customers").delete().eq("id", customerId);
     fetchAllCustomers();
     if (customer && customer.id === customerId) { setCustomer(null); setViewState("SEARCH"); setPlate(""); }
+  };
+
+  // --- GÜNCELLEME 2: MÜŞTERİ BİLGİLERİNİ GÜNCELLEME ---
+  const handleUpdateCustomer = async () => {
+    if (!editingCustomer) return;
+    
+    // Basit validasyon
+    if (!editingCustomer.plate_number || !editingCustomer.full_name) {
+        alert("Plaka ve İsim boş olamaz.");
+        return;
+    }
+
+    setLoading(true);
+    const { error } = await supabase
+        .from("customers")
+        .update({
+            plate_number: editingCustomer.plate_number,
+            full_name: editingCustomer.full_name,
+            phone_number: editingCustomer.phone_number,
+            car_model: editingCustomer.car_model
+        })
+        .eq("id", editingCustomer.id);
+
+    setLoading(false);
+
+    if (error) {
+        alert("Güncelleme hatası: " + error.message);
+    } else {
+        setEditingCustomer(null); // Modalı kapat
+        fetchAllCustomers(); // Listeyi yenile
+        alert("Müşteri bilgileri güncellendi.");
+    }
   };
 
   // 3. FORMATLAMA
@@ -168,15 +205,11 @@ export default function Home() {
     setLoading(false);
   };
 
-  // --- GÜNCELLENEN FONKSİYON: createJob ---
-  // isQuickRecord: true ise direkt 'completed' yapar (Kuyruğa girmez, mesaj gitmez)
-  // isQuickRecord: false ise 'waiting' yapar (Kuyruğa girer, mesaj gider)
   const createJob = async (type: "wash" | "repair", isQuickRecord: boolean = false) => {
     if (!customer) return;
     
     setLoading(true);
     
-    // Eğer Hızlı Kayıt ise durum 'completed', değilse 'waiting'
     const status = isQuickRecord ? "completed" : "waiting";
 
     const { error } = await supabase.from("jobs").insert([{
@@ -186,14 +219,12 @@ export default function Home() {
     }]);
 
     if (!error) { 
-      // İşlem başarılıysa ana ekrana dön ve plakayı temizle
       setPlate(""); 
       setViewState("SEARCH"); 
       fetchActiveJobs(); 
 
-      // Kullanıcıya ufak bir geri bildirim (Opsiyonel ama hoş olur)
       if (isQuickRecord) {
-        alert("Kayıt başarıyla eklendi (Mesaj gönderilmedi).");
+        alert("Hızlı Yıkama Kaydı Başarılı (Mesaj Gönderilmedi).");
       }
     }
     setLoading(false);
@@ -261,9 +292,7 @@ export default function Home() {
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* --- GÜNCELLENEN KISIM: YIKAMA BUTONLARI --- */}
                   <div className="flex flex-col gap-2">
-                    {/* 1. Kuyruğa Al (Mesaj Gider) */}
                     <button 
                       onClick={() => createJob("wash", false)} 
                       className="bg-cyan-600 hover:bg-cyan-500 p-4 rounded-xl font-bold flex flex-col items-center justify-center gap-1 h-full"
@@ -274,7 +303,6 @@ export default function Home() {
                     </button>
                   </div>
 
-                  {/* 2. Servis Butonu (Değişmedi) */}
                   <button onClick={() => createJob("repair", false)} className="bg-orange-600 hover:bg-orange-500 p-4 rounded-xl font-bold flex flex-col items-center justify-center gap-1">
                     <span className="text-2xl">🔧</span> 
                     <span>SERVİS</span>
@@ -282,7 +310,6 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* --- YENİ EKLENEN KISIM: HIZLI KAYIT BUTONU --- */}
                 <button 
                   onClick={() => createJob("wash", true)} 
                   className="mt-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-300 hover:text-white p-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
@@ -337,7 +364,8 @@ export default function Home() {
         <div className="w-full max-w-3xl animate-in fade-in">
           <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-xl">
             <div className="relative mb-6">
-              <input type="text" placeholder="İsim veya Plaka ile Ara..." className="w-full bg-slate-900 p-4 rounded-2xl pl-12 border border-slate-700 focus:border-blue-500 outline-none text-white" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              {/* --- GÜNCELLEME 3: Placeholder değiştirildi --- */}
+              <input type="text" placeholder="İsim, Plaka, Tel veya Model..." className="w-full bg-slate-900 p-4 rounded-2xl pl-12 border border-slate-700 focus:border-blue-500 outline-none text-white" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
               <span className="absolute left-4 top-4 text-slate-500 text-xl">🔍</span>
             </div>
             <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-900/50">
@@ -355,7 +383,15 @@ export default function Home() {
                       <td className="p-4 font-medium text-white">{c.full_name}</td>
                       <td className="p-4 text-slate-400 hidden sm:table-cell font-mono tracking-tighter">{c.phone_number ? `+90 ${c.phone_number}` : '-'}</td>
                       <td className="p-4 text-slate-400 text-sm hidden sm:table-cell">{c.car_model}</td>
-                      <td className="p-4 text-center">
+                      <td className="p-4 text-center flex items-center justify-end gap-2">
+                        {/* --- GÜNCELLEME 4: DÜZENLE BUTONU EKLENDİ --- */}
+                        <button 
+                            onClick={() => setEditingCustomer(c)} 
+                            className="text-slate-500 hover:text-yellow-400 p-2 rounded-full hover:bg-yellow-400/10 transition-all" 
+                            title="Düzenle"
+                        >
+                            ✏️
+                        </button>
                         <button onClick={() => deleteCustomer(c.id, c.full_name)} className="text-slate-600 hover:text-red-500 p-2 rounded-full hover:bg-red-500/10 transition-all">🗑️</button>
                       </td>
                     </tr>
@@ -365,6 +401,77 @@ export default function Home() {
               {allCustomers.length === 0 && <div className="p-10 text-center text-slate-500 italic">Müşteri bulunamadı.</div>}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* --- GÜNCELLEME 5: DÜZENLEME MODALI --- */}
+      {editingCustomer && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-slate-800 w-full max-w-md rounded-3xl border border-slate-700 shadow-2xl p-6 flex flex-col gap-4">
+                <h2 className="text-2xl font-bold text-center text-yellow-400">Kayıt Düzenle</h2>
+                
+                <div>
+                    <label className="text-slate-400 text-xs font-bold ml-1">PLAKA</label>
+                    <input 
+                        type="text" 
+                        value={editingCustomer.plate_number} 
+                        onChange={(e) => setEditingCustomer({...editingCustomer, plate_number: formatPlate(e.target.value)})}
+                        className="w-full bg-slate-900 p-4 rounded-xl border border-slate-700 focus:border-yellow-400 outline-none font-mono text-lg"
+                    />
+                </div>
+
+                <div>
+                    <label className="text-slate-400 text-xs font-bold ml-1">İSİM SOYİSİM</label>
+                    <input 
+                        type="text" 
+                        value={editingCustomer.full_name} 
+                        onChange={(e) => setEditingCustomer({...editingCustomer, full_name: e.target.value})}
+                        className="w-full bg-slate-900 p-4 rounded-xl border border-slate-700 focus:border-yellow-400 outline-none"
+                    />
+                </div>
+
+                <div>
+                    <label className="text-slate-400 text-xs font-bold ml-1">TELEFON</label>
+                    <input 
+                        type="text" 
+                        value={editingCustomer.phone_number || ""} 
+                        onChange={(e) => {
+                            let val = e.target.value.replace(/\D/g, "");
+                            if (val.startsWith("0")) val = val.slice(1);
+                            if (val.length > 10) val = val.slice(0, 10);
+                            setEditingCustomer({...editingCustomer, phone_number: val})
+                        }}
+                        className="w-full bg-slate-900 p-4 rounded-xl border border-slate-700 focus:border-yellow-400 outline-none font-mono"
+                        placeholder="5XX..."
+                    />
+                </div>
+
+                <div>
+                    <label className="text-slate-400 text-xs font-bold ml-1">ARAÇ MODELİ</label>
+                    <input 
+                        type="text" 
+                        value={editingCustomer.car_model || ""} 
+                        onChange={(e) => setEditingCustomer({...editingCustomer, car_model: e.target.value})}
+                        className="w-full bg-slate-900 p-4 rounded-xl border border-slate-700 focus:border-yellow-400 outline-none"
+                    />
+                </div>
+
+                <div className="flex gap-2 mt-2">
+                    <button 
+                        onClick={handleUpdateCustomer} 
+                        disabled={loading}
+                        className="flex-1 bg-yellow-600 hover:bg-yellow-500 py-3 rounded-xl font-bold text-black"
+                    >
+                        {loading ? "Kaydediliyor..." : "DEĞİŞİKLİKLERİ KAYDET"}
+                    </button>
+                    <button 
+                        onClick={() => setEditingCustomer(null)} 
+                        className="px-4 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold"
+                    >
+                        İptal
+                    </button>
+                </div>
+            </div>
         </div>
       )}
 
